@@ -6,33 +6,37 @@ use Illuminate\Http\Request;
 use App\Models\Post;
 use App\Models\Category;
 use App\Models\Document;
-use Illuminate\Support\Facades\DB;
+use App\Models\SeaWeather; // QUAN TRỌNG: Phải thêm dòng này để lấy dữ liệu thời tiết
 
 class HomeController extends Controller
 {
-    public function index()
-    {
-        // 1. Lấy 3 bài mới nhất để làm Slide
-        $slides = Post::latest()->take(3)->get();
+    // File: app/Http/Controllers/HomeController.php
 
-        // 2. Lấy danh sách bài viết phân trang (5 bài/trang)
-        // Lưu ý: Không nên dùng skip() chung với paginate() vì sẽ lỗi link phân trang
-        // Ta cứ lấy toàn bộ, trang đầu sẽ trùng 3 bài slide nhưng nhìn sẽ đầy đặn hơn
-        $posts = Post::latest()->paginate(5);
+public function index()
+{
+    // 1. Biến $posts (Cho phần "Tin mới nhất" ở trên)
+    $posts = Post::latest()->paginate(5); 
 
-        // 3. Lấy thông báo (Documents) - Dùng Model thay vì DB table để tránh lỗi format date
-        $documents = Document::latest()->take(5)->get();
+    // 2. Biến $categoriesWithPosts (Cho phần danh mục bên dưới)
+    $categoriesWithPosts = Category::with(['posts' => function($query) {
+        $query->latest()->take(4);
+    }])->get();
 
-        // 4. Lấy danh mục để hiện lên Menu
-        $categories = Category::all();
+    // Các biến khác (Slide, Sidebar...)
+    $slides = Post::latest()->take(3)->get();
+    $documents = Document::latest()->take(5)->get();
+    $weathers = SeaWeather::latest()->take(5)->get();
+    $categories = Category::all();
 
-        return view('welcome', compact('slides', 'posts', 'documents', 'categories'));
-    }
-
+    // TRUYỀN HẾT VÀO VIEW
+    return view('welcome', compact('posts', 'categoriesWithPosts', 'slides', 'documents', 'weathers', 'categories'));
+}
     public function show($id)
     {
         $post = Post::findOrFail($id);
-        return view('posts.show', compact('post'));
+        // Khi xem chi tiết vẫn cần lấy weathers nếu sidebar vẫn hiện ở trang này
+        $weathers = SeaWeather::latest()->take(5)->get(); 
+        return view('posts.show', compact('post', 'weathers'));
     }
 
     public function category($id)
@@ -40,21 +44,20 @@ class HomeController extends Controller
         $currentCategory = Category::findOrFail($id);
         $categories = Category::all();
         $documents = Document::latest()->take(5)->get();
+        $weathers = SeaWeather::latest()->take(5)->get();
 
-        // Lọc bài theo danh mục và phân trang 5 bài
         $posts = Post::where('category_id', $id)->latest()->paginate(5);
 
-        return view('welcome', compact('posts', 'categories', 'documents', 'currentCategory'));
+        return view('welcome', compact('posts', 'categories', 'documents', 'currentCategory', 'weathers'));
     }
 
     public function search(Request $request)
     {
         $keyword = $request->input('search');
-
         $categories = Category::all();
         $documents = Document::latest()->take(5)->get();
+        $weathers = SeaWeather::latest()->take(5)->get();
 
-        // Tìm kiếm và phân trang 5 bài
         $posts = Post::where(function($query) use ($keyword) {
                 $query->where('title', 'LIKE', "%{$keyword}%")
                       ->orWhere('summary', 'LIKE', "%{$keyword}%");
@@ -62,6 +65,6 @@ class HomeController extends Controller
             ->latest()
             ->paginate(5);
 
-        return view('welcome', compact('posts', 'categories', 'documents', 'keyword'));
+        return view('welcome', compact('posts', 'categories', 'documents', 'keyword', 'weathers'));
     }
 }

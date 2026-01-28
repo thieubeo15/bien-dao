@@ -5,27 +5,43 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SeaWeatherController;
 
 // --- 1. TRANG CHỦ ---
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/bai-viet/{id}', [HomeController::class, 'show'])->name('posts.show');
 
-// --- 2. KHU VỰC ĐĂNG NHẬP (Chung) ---
+// [QUAN TRỌNG] Đã sửa thành PostController để hiện "Tin liên quan"
+Route::get('/bai-viet/{id}', [PostController::class, 'show'])->name('posts.show');
+
+// --- 2. CÁC ROUTE CÔNG KHAI KHÁC ---
+Route::get('/category/{id}', [HomeController::class, 'category'])->name('category.show');
+Route::get('/search', [HomeController::class, 'search'])->name('posts.search');
+
+
+// --- 3. KHU VỰC THÀNH VIÊN (Cần đăng nhập) ---
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
-
-    Route::get('/viet-bai', [PostController::class, 'create'])->name('posts.create');
-    Route::post('/viet-bai', [PostController::class, 'store'])->name('posts.store');
-    
+    Route::post('/ckeditor/upload', [PostController::class, 'uploadImage'])->name('ckeditor.upload');
+    // Quản lý Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Viết & Sửa bài (User thường cũng làm được)
+    Route::get('/viet-bai', [PostController::class, 'create'])->name('posts.create');
+    Route::post('/viet-bai', [PostController::class, 'store'])->name('posts.store');
+    
+    Route::get('/posts/{id}/edit', [PostController::class, 'edit'])->name('posts.edit');
+    Route::put('/posts/{id}', [PostController::class, 'update'])->name('posts.update');
+    Route::delete('/posts/{id}', [PostController::class, 'destroy'])->name('posts.destroy');
+    
+    Route::get('/my-posts', [PostController::class, 'myPosts'])->name('posts.my-posts');
 });
 
-// --- 3. KHU VỰC ADMIN (Chỉ Admin mới vào được) ---
-// Tất cả các route bên trong nhóm này đều yêu cầu login VÀ có quyền admin
+
+// --- 4. KHU VỰC ADMIN (Chỉ Admin mới vào được) ---
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     
     // Quản lý User
@@ -43,16 +59,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('/documents', [AdminController::class, 'storeDocument'])->name('admin.documents.store');
     Route::delete('/documents/{id}', [AdminController::class, 'destroyDocument'])->name('admin.documents.destroy');
 
-    // Quản lý Bài viết (Đã đưa vào bên trong nhóm Admin để bảo mật)
-    Route::get('/posts', [AdminController::class, 'posts'])->name('admin.posts');
+    // Quản lý Bài viết (Admin xem bài của người khác)
+    // Đã xóa dòng trùng lặp bên dưới và dùng dòng này làm chuẩn
+    Route::get('/posts', [PostController::class, 'adminPosts'])->name('admin.posts');
     Route::delete('/posts/{id}', [AdminController::class, 'destroyPost'])->name('admin.posts.destroy');
+
+    // [QUAN TRỌNG] Đưa SeaWeather vào đây để bảo mật & gọn code
+    // URL sẽ tự động là: /admin/sea-weather
+    Route::resource('sea-weather', SeaWeatherController::class)->names('admin.sea-weather');
 });
-// Route lọc theo danh mục
-Route::get('/category/{id}', [HomeController::class, 'category'])->name('category.show');
-
-// Route tìm kiếm bài viết
-Route::get('/search', [App\Http\Controllers\HomeController::class, 'search'])->name('posts.search');
-
-
 
 require __DIR__.'/auth.php';

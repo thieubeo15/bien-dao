@@ -56,7 +56,12 @@
                             <td class="px-6 py-4 text-right">
                                 @if($user->id !== Auth::id()) <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Bạn chắc chắn muốn xóa?');">
                                     @csrf @method('DELETE')
-                                    <button class="text-red-600 hover:text-red-900">Xóa</button>
+                                    <button type="submit"
+                class="inline-flex items-center px-3 py-1.5 text-sm font-medium
+                       text-white bg-red-600 rounded-md
+                       hover:bg-red-700 transition">
+                Xóa
+            </button>
                                 </form>
                                 @endif
                             </td>

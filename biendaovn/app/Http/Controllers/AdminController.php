@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Category;
+use App\Models\Post; // [MỚI] Thêm dòng này để gọi được Model Post
+use App\Models\Document;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,7 +16,6 @@ class AdminController extends Controller
     public function users()
     {
         $users = User::all();
-        // Trả về view (bạn sẽ tạo view này sau)
         return view('admin.users', compact('users'));
     }
 
@@ -66,24 +67,40 @@ class AdminController extends Controller
     // --- 3. QUẢN LÝ THÔNG BÁO (DOCUMENTS) ---
     public function documents()
     {
+        // Lấy danh sách thông báo cũ
         $documents = DB::table('documents')->latest()->get();
-        return view('admin.documents', compact('documents'));
+        
+        // [MỚI] Lấy danh sách bài viết để admin có thể chọn làm link nhanh
+        // Chỉ lấy id và title cho nhẹ database
+        $posts = Post::latest()->select('id', 'title')->get(); 
+
+        // Truyền cả $documents và $posts sang view
+        return view('admin.documents', compact('documents', 'posts'));
     }
 
-    public function storeDocument(Request $request)
-    {
-        $request->validate(['title' => 'required']);
-        
-        DB::table('documents')->insert([
-            'title' => $request->title,
-            'link' => $request->link,
-            'is_new' => true,
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
-        
-        return redirect()->back()->with('success', 'Đã đăng thông báo!');
+   public function storeDocument(Request $request)
+{
+    $request->validate([
+        'title' => 'required',
+    ]);
+
+    // LOGIC TỰ ĐỘNG CHỌN LINK
+    // Ưu tiên 1: Link thủ công (nếu admin nhập)
+    // Ưu tiên 2: Link từ bài viết đã chọn
+    $finalLink = $request->link;
+    
+    if (empty($finalLink) && !empty($request->post_id_link)) {
+        $finalLink = $request->post_id_link;
     }
+
+    Document::create([
+        'title' => $request->title,
+        'link'  => $finalLink, // Lưu cái link cuối cùng vào
+        'content' => null, // Hoặc nội dung nếu có
+    ]);
+
+    return redirect()->back()->with('success', 'Đăng thông báo thành công!');
+}
 
     public function destroyDocument($id)
     {
@@ -94,14 +111,13 @@ class AdminController extends Controller
     // --- 4. QUẢN LÝ BÀI VIẾT (ADMIN) ---
     public function posts()
     {
-        // Lấy tất cả bài viết, mới nhất lên đầu, phân trang 10 bài
-        $posts = \App\Models\Post::latest()->paginate(10);
+        $posts = Post::latest()->paginate(10);
         return view('admin.posts', compact('posts'));
     }
 
     public function destroyPost($id)
     {
-        \App\Models\Post::destroy($id);
+        Post::destroy($id);
         return redirect()->back()->with('success', 'Đã xóa bài viết vi phạm!');
     }
 }

@@ -15,7 +15,12 @@
                             <label class="block text-sm mb-2">Tên danh mục</label>
                             <input type="text" name="name" class="w-full border-gray-300 rounded-md" required>
                         </div>
-                        <button class="w-full bg-blue-600 text-white py-2 rounded-md">Lưu danh mục</button>
+                       <div class="flex justify-center">
+    <button class="bg-blue-600 text-white py-2 px-6 rounded-md">
+        Lưu danh mục
+    </button>
+</div>
+
                     </form>
                 </div>
 
@@ -36,7 +41,12 @@
                                 <td class="py-3 text-right">
                                     <form action="{{ route('admin.categories.destroy', $cat->id) }}" method="POST" onsubmit="return confirm('Xóa danh mục này sẽ xóa hết bài viết bên trong. Chắc chắn?');">
                                         @csrf @method('DELETE')
-                                        <button class="text-red-600 hover:underline">Xóa</button>
+                                        <button type="submit"
+                class="inline-flex items-center px-3 py-1.5 text-sm font-medium
+                       text-white bg-red-600 rounded-md
+                       hover:bg-red-700 transition">
+                Xóa
+            </button>
                                     </form>
                                 </td>
                             </tr>
